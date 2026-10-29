@@ -1,0 +1,20 @@
+[project]
+name = "nova-ai-cli"
+version = "0.1.0"
+description = "NOVA AI CLI - a modern terminal chatbot powered by an open-weight LLM on Groq"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "groq>=1.7.0",
+    "python-dotenv>=1.2.4",
+    "rich>=15.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
