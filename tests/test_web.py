@@ -14,6 +14,7 @@ from nova.config import Config
 def web_client(tmp_path, monkeypatch):
     monkeypatch.setattr(web, "DATABASE_PATH", tmp_path / "chats.sqlite3")
     monkeypatch.setattr(web, "GOOGLE_CONFIGURED", False)
+    monkeypatch.setattr(web, "ANONYMOUS_ACCESS", True)
     monkeypatch.setattr(web, "LOCAL_PREVIEW", True)
     web._initialize_database()
     with TestClient(web.app) as client:
@@ -21,7 +22,10 @@ def web_client(tmp_path, monkeypatch):
 
 
 def test_preview_session_can_create_open_list_and_delete_chat(web_client):
-    assert web_client.get("/api/session").json()["local_preview"] is True
+    session = web_client.get("/api/session").json()
+    assert session["local_preview"] is True
+    assert session["public_access"] is True
+    assert session["user"]["name"] == "Guest"
 
     created = web_client.post("/api/chats").json()
     assert created["title"] == "New chat"
@@ -41,6 +45,21 @@ def test_chat_lookup_is_scoped_to_its_owner(web_client):
 def test_chat_api_requires_google_sign_in_when_preview_is_disabled(web_client, monkeypatch):
     monkeypatch.setattr(web, "GOOGLE_CONFIGURED", True)
     assert web_client.get("/api/chats").status_code == 401
+
+
+def test_guest_chats_are_separate_between_browser_sessions(web_client, tmp_path, monkeypatch):
+    monkeypatch.setattr(web, "LOCAL_PREVIEW", False)
+    with TestClient(web.app) as another_browser:
+        first_session = web_client.get("/api/session").json()
+        second_session = another_browser.get("/api/session").json()
+        first_guest = first_session["user"]["id"]
+        second_guest = second_session["user"]["id"]
+        assert first_session["authenticated"] is False
+        assert first_session["public_access"] is True
+        assert first_guest != second_guest
+        web_client.post("/api/chats")
+        assert len(web_client.get("/api/chats").json()) == 1
+        assert another_browser.get("/api/chats").json() == []
 
 
 def test_default_database_path_uses_vercel_writable_tmp(monkeypatch):

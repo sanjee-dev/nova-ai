@@ -291,7 +291,7 @@ async function initialize() {
   try {
     const response = await request("/api/session");
     state.session = await response.json();
-    if (!state.session.local_preview && !state.session.authenticated) {
+    if (!state.session.public_access && !state.session.authenticated) {
       showSignin();
       if (!state.session.auth_configured) {
         const googleLogin = el("google-login");
@@ -311,8 +311,8 @@ async function initialize() {
     }
     const user = state.session.user || { name: "NOVA user" };
     el("account-name").textContent = user.name || "NOVA user";
-    el("account-mode").textContent = state.session.local_preview ? "Local preview" : (user.email || "Personal workspace");
-    el("welcome-name").textContent = state.session.local_preview || !user.name ? "" : `, ${user.name.split(" ")[0]}`;
+    el("account-mode").textContent = state.session.local_preview ? "Local preview" : state.session.public_access ? "Guest session" : (user.email || "Personal workspace");
+    el("welcome-name").textContent = state.session.local_preview || state.session.public_access || !user.name ? "" : `, ${user.name.split(" ")[0]}`;
     el("avatar").textContent = (user.name || "N").trim().charAt(0).toUpperCase();
     if (user.picture) {
       const image = document.createElement("img");
@@ -320,7 +320,10 @@ async function initialize() {
       image.alt = "";
       el("avatar").replaceChildren(image);
     }
-    el("preview-notice").classList.toggle("hidden", !state.session.local_preview);
+    el("preview-notice").classList.toggle("hidden", !state.session.public_access);
+    el("preview-notice").querySelector("span:last-child").textContent = state.session.local_preview
+      ? "Chats saved on this device"
+      : "Guest chats are temporary on this host";
     el("account-action").classList.toggle("hidden", !state.session.authenticated);
     await Promise.all([refreshChats(), loadModels()]);
   } catch (error) { showToast(error.message); }

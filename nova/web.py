@@ -41,6 +41,7 @@ if not BASE_URL:
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
 GOOGLE_CONFIGURED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+ANONYMOUS_ACCESS = os.getenv("NOVA_ALLOW_ANONYMOUS", "true").lower() in {"1", "true", "yes"}
 def _default_local_preview() -> bool:
     return not os.getenv("VERCEL") and BASE_URL.startswith(("http://127.0.0.1", "http://localhost"))
 
@@ -96,12 +97,20 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def _guest_for(request: Request) -> dict[str, str]:
+    guest_id = request.session.get("guest_id")
+    if not guest_id:
+        guest_id = str(uuid4())
+        request.session["guest_id"] = guest_id
+    return {"id": f"guest:{guest_id}", "name": "Guest", "email": ""}
+
+
 def _user_for(request: Request) -> dict[str, str]:
     user = request.session.get("user")
     if user:
         return user
-    if not GOOGLE_CONFIGURED and LOCAL_PREVIEW:
-        return {"id": "local-preview", "name": "Local preview", "email": ""}
+    if not GOOGLE_CONFIGURED and ANONYMOUS_ACCESS:
+        return _guest_for(request)
     raise HTTPException(status_code=401, detail="Please sign in with Google to continue.")
 
 
@@ -164,11 +173,15 @@ def index() -> FileResponse:
 @app.get("/api/session")
 def session_info(request: Request) -> dict[str, object]:
     user = request.session.get("user")
+    public_access = ANONYMOUS_ACCESS and not GOOGLE_CONFIGURED
+    if not user and public_access:
+        user = _guest_for(request)
     return {
-        "authenticated": bool(user),
+        "authenticated": bool(request.session.get("user")),
         "auth_configured": GOOGLE_CONFIGURED,
-        "local_preview": not GOOGLE_CONFIGURED and LOCAL_PREVIEW,
-        "user": user or ({"name": "Local preview", "email": ""} if not GOOGLE_CONFIGURED and LOCAL_PREVIEW else None),
+        "public_access": public_access,
+        "local_preview": public_access and LOCAL_PREVIEW,
+        "user": user,
         "model": os.getenv("MODEL_NAME", DEFAULT_MODEL),
     }
 
