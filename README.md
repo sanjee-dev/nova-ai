@@ -132,25 +132,21 @@ NOVA_BASE_URL=http://127.0.0.1:8000
 ```
 
 When Google credentials are configured, users must sign in before accessing their own saved conversations.
-Locally, SQLite stores chats outside the repository at `~/.nova-ai/chats.sqlite3`. For hosted deployments, set `DATABASE_URL` to a PostgreSQL connection string so chat history persists across serverless instances.
+Locally, SQLite stores chats outside the repository at `~/.nova-ai/chats.sqlite3`. The web app uses this same SQLite database in every environment; it does not require PostgreSQL.
 
-## Deploy the web app to Vercel
+## Deploy the web app with its SQLite history
 
-1. Push this project to GitHub and import the repository in Vercel. The FastAPI entrypoint is configured in `pyproject.toml`.
-2. Add a PostgreSQL database to the Vercel project using a Neon integration, then make its pooled connection string available as `DATABASE_URL`.
-3. Add these environment variables in Vercel Project Settings. Keep all values private:
+SQLite needs a persistent disk so chat history survives restarts and deployments. The included `render.yaml` configures a Render web service and mounts its disk at `/var/data`. Render requires a paid service plan for persistent disks.
 
-    - `GROQ_API_KEY`: your Groq API key
-    - `DATABASE_URL`: the PostgreSQL connection string from Neon
-    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: your Google OAuth web client
-    - `NOVA_SESSION_SECRET`: a long random secret; generate one with `python -c "import secrets; print(secrets.token_urlsafe(48))"`
-    - `NOVA_BASE_URL`: the production URL, such as `https://your-project.vercel.app`
-    - `NOVA_LOCAL_PREVIEW`: `false`
+1. Import this GitHub repository in Render and create the service from `render.yaml`.
+2. Set `GROQ_API_KEY`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` in the Render dashboard when prompted. Keep these secrets out of GitHub.
+3. After the first deploy, copy the service URL from Render. In Google Cloud Console, add `https://YOUR-SERVICE.onrender.com/auth/google/callback` as an authorized redirect URI, replacing the example hostname with your actual service URL.
+4. Open the Render service's Environment settings and set `NOVA_BASE_URL` to the exact HTTPS service URL. Then redeploy.
+5. Test Google sign-in and create a chat. Share the HTTPS service URL with your users only after both work.
 
-4. In Google Cloud Console, add `https://your-project.vercel.app/auth/google/callback` as an authorized redirect URI. Replace the example hostname with your Vercel production domain.
-5. Redeploy after setting the environment variables, then share the production URL. Do not share preview deployments or put secrets in GitHub.
+The service's SQLite file is stored at `/var/data/chats.sqlite3` on the persistent disk. A persistent disk supports a single service instance, which is suitable for this small app.
 
-The Vercel deployment requires Google OAuth and PostgreSQL configuration before users can sign in and have private, persistent chat histories. Local preview mode is intended only for localhost development.
+Vercel can run the FastAPI app, but its serverless filesystem is not persistent. Do not use a Vercel deployment for chat history unless the app is changed to use external durable storage. Local preview mode is intended only for localhost development.
 
 ## Available commands
 

@@ -10,18 +10,15 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 from urllib.parse import urlencode
 from uuid import uuid4
 
 import httpx
-import psycopg
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from psycopg.rows import dict_row
 from starlette.middleware.sessions import SessionMiddleware
 
 from groq import Groq
@@ -34,7 +31,13 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 WEB_ROOT = PROJECT_ROOT / "web"
 load_dotenv(PROJECT_ROOT / ".env")
 
-BASE_URL = os.getenv("NOVA_BASE_URL", "http://127.0.0.1:8000").rstrip("/")
+BASE_URL = os.getenv("NOVA_BASE_URL", "").rstrip("/")
+if not BASE_URL and os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+    BASE_URL = f"https://{os.environ['RENDER_EXTERNAL_HOSTNAME']}"
+if not BASE_URL and os.getenv("VERCEL_URL"):
+    BASE_URL = f"https://{os.environ['VERCEL_URL']}"
+if not BASE_URL:
+    BASE_URL = "http://127.0.0.1:8000"
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
 GOOGLE_CONFIGURED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
@@ -44,19 +47,13 @@ SESSION_SECRET = os.getenv("NOVA_SESSION_SECRET") or secrets.token_urlsafe(48)
 DATABASE_PATH = Path(
     os.getenv("NOVA_DB_PATH", str(Path.home() / ".nova-ai" / "chats.sqlite3"))
 ).expanduser()
-DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("POSTGRES_URL") or ""
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 
 @contextmanager
-def _connect() -> Iterator[Any]:
-    if DATABASE_URL:
-        connection = psycopg.connect(DATABASE_URL, row_factory=dict_row, connect_timeout=10)
-    else:
-        DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        connection = sqlite3.connect(DATABASE_PATH, timeout=10)
-        connection.row_factory = sqlite3.Row
+def _connect() -> Iterator[sqlite3.Connection]:
+    DATABASE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    connection = sqlite3.connect(DATABASE_PATH, timeout=10)
+    connection.row_factory = sqlite3.Row
     try:
         yield connection
         connection.commit()
@@ -67,15 +64,9 @@ def _connect() -> Iterator[Any]:
         connection.close()
 
 
-def _execute(connection: Any, query: str, params: tuple[Any, ...] = ()) -> Any:
-    if DATABASE_URL:
-        query = query.replace("?", "%s")
-    return connection.execute(query, params)
-
-
 def _initialize_database() -> None:
     with _connect() as connection:
-        _execute(connection,
+        connection.execute(
             """CREATE TABLE IF NOT EXISTS chats (
                 id TEXT PRIMARY KEY,
                 user_id TEXT NOT NULL,
@@ -85,7 +76,7 @@ def _initialize_database() -> None:
                 updated_at TEXT NOT NULL
             )"""
         )
-        _execute(connection,
+        connection.execute(
             "CREATE INDEX IF NOT EXISTS chats_user_updated ON chats(user_id, updated_at DESC)"
         )
 
@@ -115,9 +106,9 @@ def _get_client() -> tuple[Groq, Config]:
     return client, config
 
 
-def _chat_row(chat_id: str, user_id: str) -> Any:
+def _chat_row(chat_id: str, user_id: str) -> sqlite3.Row:
     with _connect() as connection:
-        row = _execute(connection,
+        row = connection.execute(
             "SELECT * FROM chats WHERE id = ? AND user_id = ?", (chat_id, user_id)
         ).fetchone()
     if row is None:
@@ -125,7 +116,7 @@ def _chat_row(chat_id: str, user_id: str) -> Any:
     return row
 
 
-def _serialize_chat(row: Any, include_messages: bool = False) -> dict[str, object]:
+def _serialize_chat(row: sqlite3.Row, include_messages: bool = False) -> dict[str, object]:
     result: dict[str, object] = {
         "id": row["id"],
         "title": row["title"],
@@ -239,7 +230,7 @@ def logout(request: Request) -> dict[str, bool]:
 def get_chats(request: Request) -> list[dict[str, object]]:
     user = _user_for(request)
     with _connect() as connection:
-        rows = _execute(connection,
+        rows = connection.execute(
             "SELECT * FROM chats WHERE user_id = ? ORDER BY updated_at DESC", (user["id"],)
         ).fetchall()
     return [_serialize_chat(row) for row in rows]
@@ -251,11 +242,11 @@ def create_chat(request: Request) -> dict[str, object]:
     chat_id = str(uuid4())
     now = _now()
     with _connect() as connection:
-        _execute(connection,
+        connection.execute(
             "INSERT INTO chats(id, user_id, title, messages, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
             (chat_id, user["id"], "New chat", "[]", now, now),
         )
-        row = _execute(connection, "SELECT * FROM chats WHERE id = ?", (chat_id,)).fetchone()
+        row = connection.execute("SELECT * FROM chats WHERE id = ?", (chat_id,)).fetchone()
     return _serialize_chat(row)
 
 
@@ -269,7 +260,7 @@ def get_chat(chat_id: str, request: Request) -> dict[str, object]:
 def delete_chat(chat_id: str, request: Request) -> dict[str, bool]:
     user = _user_for(request)
     with _connect() as connection:
-        result = _execute(connection,
+        result = connection.execute(
             "DELETE FROM chats WHERE id = ? AND user_id = ?", (chat_id, user["id"])
         )
     if result.rowcount == 0:
@@ -318,7 +309,7 @@ def send_message(chat_id: str, body: ChatInput, request: Request) -> StreamingRe
             if title == "New chat":
                 title = " ".join(user_text.split())[:54] or "New chat"
             with _connect() as connection:
-                _execute(connection,
+                connection.execute(
                     "UPDATE chats SET title = ?, messages = ?, updated_at = ? WHERE id = ? AND user_id = ?",
                     (title, json.dumps(saved_messages, ensure_ascii=False), _now(), chat_id, user["id"]),
                 )
