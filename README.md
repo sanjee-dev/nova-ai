@@ -111,6 +111,47 @@ MODEL_NAME=openai/gpt-oss-20b
 uv run main.py
 ```
 
+## Run the web dashboard
+
+Install the web dependencies and start the browser app:
+
+```bash
+uv sync
+uv run uvicorn nova.web:app --reload
+```
+
+Open <http://127.0.0.1:8000>. Without Google OAuth credentials the app runs in local preview mode and saves chats on this computer.
+To enable Google sign-in, create an OAuth 2.0 **Web application** client in Google Cloud Console, add
+`http://127.0.0.1:8000/auth/google/callback` as an authorized redirect URI, and put the client ID and secret in `.env`:
+
+```env
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+NOVA_SESSION_SECRET=your_long_random_session_secret
+NOVA_BASE_URL=http://127.0.0.1:8000
+```
+
+When Google credentials are configured, users must sign in before accessing their own saved conversations.
+Locally, SQLite stores chats outside the repository at `~/.nova-ai/chats.sqlite3`. For hosted deployments, set `DATABASE_URL` to a PostgreSQL connection string so chat history persists across serverless instances.
+
+## Deploy the web app to Vercel
+
+1. Push this project to GitHub and import the repository in Vercel. The FastAPI entrypoint is configured in `pyproject.toml`.
+2. Add a PostgreSQL database to the Vercel project using a Neon integration, then make its pooled connection string available as `DATABASE_URL`.
+3. Add these environment variables in Vercel Project Settings. Keep all values private:
+
+    - `GROQ_API_KEY`: your Groq API key
+    - `DATABASE_URL`: the PostgreSQL connection string from Neon
+    - `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: your Google OAuth web client
+    - `NOVA_SESSION_SECRET`: a long random secret; generate one with `python -c "import secrets; print(secrets.token_urlsafe(48))"`
+    - `NOVA_BASE_URL`: the production URL, such as `https://your-project.vercel.app`
+    - `NOVA_LOCAL_PREVIEW`: `false`
+
+4. In Google Cloud Console, add `https://your-project.vercel.app/auth/google/callback` as an authorized redirect URI. Replace the example hostname with your Vercel production domain.
+5. Redeploy after setting the environment variables, then share the production URL. Do not share preview deployments or put secrets in GitHub.
+
+The Vercel deployment requires Google OAuth and PostgreSQL configuration before users can sign in and have private, persistent chat histories. Local preview mode is intended only for localhost development.
+
 ## Available commands
 
 | Command | What it does |

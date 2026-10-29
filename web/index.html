@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f7f5" />
+    <title>NOVA AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/assets/app.css" />
+  </head>
+  <body>
+    <div class="app-shell" id="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand-row">
+          <a class="brand" href="/" aria-label="NOVA home"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 3.5v25M3.5 16h25M7.2 7.2l17.6 17.6M24.8 7.2 7.2 24.8"/><circle cx="16" cy="16" r="3.2"/></svg></span><span>NOVA</span><span class="brand-ai">AI</span></a>
+          <button class="icon-button mobile-close" id="close-sidebar" aria-label="Close menu" title="Close menu"><svg viewBox="0 0 24 24"><path d="m18 6-12 12M6 6l12 12"/></svg></button>
+        </div>
+        <button class="new-chat-button" id="new-chat"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>New chat</span><kbd>Ctrl K</kbd></button>
+        <label class="search-box"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="chat-search" type="search" placeholder="Search chats" autocomplete="off" /></label>
+        <div class="history-heading"><span>YOUR CHATS</span><button class="icon-button small" id="history-menu" title="Refresh chats" aria-label="Refresh chats"><svg viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.5 9a7 7 0 0 1 11.6-2L20 12M4 12l2.9 5a7 7 0 0 0 11.6-2"/></svg></button></div>
+        <nav class="chat-list" id="chat-list" aria-label="Chat history"></nav>
+        <div class="sidebar-bottom">
+          <div class="preview-notice" id="preview-notice"><span class="notice-dot"></span><span>Chats saved on this device</span></div>
+          <div class="account-row"><div class="avatar" id="avatar">N</div><div class="account-copy"><strong id="account-name">NOVA user</strong><span id="account-mode">Personal workspace</span></div><button class="icon-button small account-menu" id="account-action" title="Account options" aria-label="Account options"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button></div>
+          <div class="account-popover hidden" id="account-popover"><button id="signout-button">Sign out</button></div>
+        </div>
+      </aside>
+      <div class="sidebar-scrim" id="sidebar-scrim"></div>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <button class="icon-button menu-button" id="open-sidebar" aria-label="Open menu" title="Open menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+          <div class="mobile-brand"><span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M16 3.5v25M3.5 16h25M7.2 7.2l17.6 17.6M24.8 7.2 7.2 24.8"/><circle cx="16" cy="16" r="3.2"/></svg></span>NOVA</div>
+          <div class="topbar-spacer"></div>
+          <label class="model-picker"><span class="model-status"></span><select id="model-select" aria-label="Choose model"><option>Loading model...</option></select><svg viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></svg></label>
+          <button class="icon-button top-action hidden" id="delete-chat" title="Delete this chat" aria-label="Delete this chat"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg></button>
+        </header>
+        <section class="workspace" id="workspace">
+          <div class="welcome-view" id="welcome-view">
+            <div class="welcome-orbit"><span class="welcome-spark">✳</span><span class="orbit-dot dot-one"></span><span class="orbit-dot dot-two"></span></div>
+            <p class="eyebrow">A LITTLE SPACE TO THINK</p>
+            <h1>Good to see you<span id="welcome-name"></span>.</h1>
+            <p class="welcome-subtitle">What would you like to work through today?</p>
+            <div class="prompt-grid">
+              <button class="prompt-card" data-prompt="Help me plan my week with a simple, realistic schedule."><span class="prompt-icon coral"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3"/></svg></span><span><strong>Plan my day</strong><small>Make a little room for what matters</small></span><svg class="prompt-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></button>
+              <button class="prompt-card" data-prompt="Explain a tricky idea to me in plain language, with a practical example."><span class="prompt-icon mint"><svg viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-4 12.7c.5.4 1 1 1 1.8h6c0-.8.5-1.4 1-1.8A7 7 0 0 0 12 3Z"/><path d="M9 21h6M10 18h4M10 9h4M12 7v6"/></svg></span><span><strong>Learn something</strong><small>Clear explanations, without the jargon</small></span><svg class="prompt-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></button>
+              <button class="prompt-card" data-prompt="Help me draft a thoughtful, concise email about "><span class="prompt-icon blue"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg></span><span><strong>Write a first draft</strong><small>Start with a blank page, together</small></span><svg class="prompt-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></button>
+              <button class="prompt-card" data-prompt="I have a problem to solve. Help me break it into small next steps: "><span class="prompt-icon lilac"><svg viewBox="0 0 24 24"><path d="M5 4h14v16H5z"/><path d="m8 12 2.5 2.5L16 9M8 7h2M8 17h2"/></svg></span><span><strong>Untangle a problem</strong><small>Turn a big thing into next steps</small></span><svg class="prompt-arrow" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></svg></button>
+            </div>
+          </div>
+          <div class="conversation-view hidden" id="conversation-view"><div class="messages" id="messages" aria-live="polite"></div></div>
+        </section>
+        <footer class="composer-area">
+          <form class="composer" id="composer"><textarea id="message-input" rows="1" placeholder="Message NOVA..." aria-label="Message NOVA" maxlength="12000"></textarea><div class="composer-tools"><span class="composer-hint"><kbd>Enter</kbd> to send <span class="hint-divider">·</span> <kbd>Shift Enter</kbd> for a new line</span><button class="send-button" id="send-button" type="submit" aria-label="Send message" title="Send message"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button></div></form>
+          <p class="composer-disclaimer">NOVA can make mistakes. Check important information.</p>
+        </footer>
+      </main>
+
+      <section class="signin-screen hidden" id="signin-screen"><div class="signin-card"><a class="brand signin-brand" href="/"><span class="brand-mark"><svg viewBox="0 0 32 32"><path d="M16 3.5v25M3.5 16h25M7.2 7.2l17.6 17.6M24.8 7.2 7.2 24.8"/><circle cx="16" cy="16" r="3.2"/></svg></span><span>NOVA</span><span class="brand-ai">AI</span></a><span class="signin-art">✳</span><p class="eyebrow">YOUR THOUGHTS, IN GOOD COMPANY</p><h1>Welcome back.</h1><p class="signin-copy">Sign in to pick up where you left off. Your chats stay yours.</p><a class="google-button" href="/auth/google"><span class="google-g">G</span>Continue with Google<svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a><p class="signin-footnote">By continuing, you agree to use NOVA thoughtfully.</p></div></section>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      <dialog class="confirm-dialog" id="delete-dialog"><form method="dialog"><span class="dialog-icon"><svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 14h12l1-14M9 7V4h6v3"/></svg></span><h2>Delete this chat?</h2><p>This conversation will be permanently removed from your history.</p><div class="dialog-actions"><button class="dialog-cancel" value="cancel">Keep chat</button><button class="dialog-delete" id="confirm-delete" value="confirm">Delete chat</button></div></form></dialog>
+    </div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
