@@ -41,8 +41,15 @@ if not BASE_URL:
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "").strip()
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
 GOOGLE_CONFIGURED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
-LOCAL_PREVIEW_DEFAULT = "true" if BASE_URL.startswith(("http://127.0.0.1", "http://localhost")) else "false"
-LOCAL_PREVIEW = os.getenv("NOVA_LOCAL_PREVIEW", LOCAL_PREVIEW_DEFAULT).lower() in {"1", "true", "yes"}
+def _default_local_preview() -> bool:
+    return not os.getenv("VERCEL") and BASE_URL.startswith(("http://127.0.0.1", "http://localhost"))
+
+
+LOCAL_PREVIEW = os.getenv("NOVA_LOCAL_PREVIEW", str(_default_local_preview()).lower()).lower() in {
+    "1",
+    "true",
+    "yes",
+}
 SESSION_SECRET = os.getenv("NOVA_SESSION_SECRET") or secrets.token_urlsafe(48)
 def _default_database_path() -> Path:
     if os.getenv("VERCEL"):

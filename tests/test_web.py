@@ -48,6 +48,11 @@ def test_default_database_path_uses_vercel_writable_tmp(monkeypatch):
     assert web._default_database_path().as_posix() == "/tmp/nova-ai/chats.sqlite3"
 
 
+def test_local_preview_is_disabled_by_default_on_vercel(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    assert web._default_local_preview() is False
+
+
 def test_local_database_path_stays_in_user_home(monkeypatch):
     monkeypatch.delenv("VERCEL", raising=False)
     assert web._default_database_path() == web.Path.home() / ".nova-ai" / "chats.sqlite3"
