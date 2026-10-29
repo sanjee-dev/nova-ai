@@ -146,7 +146,18 @@ SQLite needs a persistent disk so chat history survives restarts and deployments
 
 The service's SQLite file is stored at `/var/data/chats.sqlite3` on the persistent disk. A persistent disk supports a single service instance, which is suitable for this small app.
 
-Vercel can run the FastAPI app, but its serverless filesystem is not persistent. Do not use a Vercel deployment for chat history unless the app is changed to use external durable storage. Local preview mode is intended only for localhost development.
+Vercel can run the FastAPI app, but its serverless filesystem is not persistent. For a temporary demo without a hosted database, set `NOVA_DB_PATH=/tmp/nova-ai/chats.sqlite3`; chats may disappear after an instance restarts and may not be shared across instances. Use the Render persistent-disk setup above if chat history must be durable. Local preview mode is intended only for localhost development.
+
+To deploy a temporary-history demo on Vercel, import this GitHub repository and add these Environment Variables in the Vercel project settings:
+
+- `GROQ_API_KEY`: your Groq API key
+- `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`: your Google OAuth web client
+- `NOVA_SESSION_SECRET`: a long random secret
+- `NOVA_BASE_URL`: your stable production URL, such as `https://your-project.vercel.app`
+- `NOVA_DB_PATH`: `/tmp/nova-ai/chats.sqlite3`
+- `NOVA_LOCAL_PREVIEW`: `false`
+
+Add `https://your-project.vercel.app/auth/google/callback` as an authorized redirect URI in Google Cloud Console, replacing the hostname with your actual Vercel domain. Redeploy after setting these values. The app blocks chat access until Google sign-in is configured. Do not promise users that chat history is permanent on Vercel.
 
 ## Available commands
 

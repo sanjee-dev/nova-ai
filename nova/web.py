@@ -44,9 +44,13 @@ GOOGLE_CONFIGURED = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 LOCAL_PREVIEW_DEFAULT = "true" if BASE_URL.startswith(("http://127.0.0.1", "http://localhost")) else "false"
 LOCAL_PREVIEW = os.getenv("NOVA_LOCAL_PREVIEW", LOCAL_PREVIEW_DEFAULT).lower() in {"1", "true", "yes"}
 SESSION_SECRET = os.getenv("NOVA_SESSION_SECRET") or secrets.token_urlsafe(48)
-DATABASE_PATH = Path(
-    os.getenv("NOVA_DB_PATH", str(Path.home() / ".nova-ai" / "chats.sqlite3"))
-).expanduser()
+def _default_database_path() -> Path:
+    if os.getenv("VERCEL"):
+        return Path("/tmp/nova-ai/chats.sqlite3")
+    return Path.home() / ".nova-ai" / "chats.sqlite3"
+
+
+DATABASE_PATH = Path(os.getenv("NOVA_DB_PATH", str(_default_database_path()))).expanduser()
 
 
 @contextmanager

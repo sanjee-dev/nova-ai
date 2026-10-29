@@ -43,6 +43,16 @@ def test_chat_api_requires_google_sign_in_when_preview_is_disabled(web_client, m
     assert web_client.get("/api/chats").status_code == 401
 
 
+def test_default_database_path_uses_vercel_writable_tmp(monkeypatch):
+    monkeypatch.setenv("VERCEL", "1")
+    assert web._default_database_path().as_posix() == "/tmp/nova-ai/chats.sqlite3"
+
+
+def test_local_database_path_stays_in_user_home(monkeypatch):
+    monkeypatch.delenv("VERCEL", raising=False)
+    assert web._default_database_path() == web.Path.home() / ".nova-ai" / "chats.sqlite3"
+
+
 def test_google_login_uses_callback_and_rejects_invalid_state(monkeypatch):
     monkeypatch.setattr(web, "GOOGLE_CONFIGURED", True)
     monkeypatch.setattr(web, "GOOGLE_CLIENT_ID", "test-client-id")

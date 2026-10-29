@@ -291,10 +291,22 @@ async function initialize() {
   try {
     const response = await request("/api/session");
     state.session = await response.json();
-    if (state.session.auth_configured && !state.session.authenticated) {
+    if (!state.session.local_preview && !state.session.authenticated) {
       showSignin();
-      const params = new URLSearchParams(location.search);
-      if (params.has("signin")) showToast("Google sign-in could not be completed. Please try again.");
+      if (!state.session.auth_configured) {
+        const googleLogin = el("google-login");
+        googleLogin.href = "#";
+        googleLogin.classList.add("disabled");
+        googleLogin.setAttribute("aria-disabled", "true");
+        el("signin-copy").textContent = "Google sign-in has not been configured for this site yet. Please contact its owner.";
+        googleLogin.addEventListener("click", (event) => {
+          event.preventDefault();
+          showToast("The site owner needs to configure Google OAuth first.");
+        });
+      } else {
+        const params = new URLSearchParams(location.search);
+        if (params.has("signin")) showToast("Google sign-in could not be completed. Please try again.");
+      }
       return;
     }
     const user = state.session.user || { name: "NOVA user" };
